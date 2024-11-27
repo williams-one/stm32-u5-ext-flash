@@ -78,6 +78,51 @@ void HAL_MspInit(void)
 }
 
 /**
+* @brief DCACHE MSP Initialization
+* This function configures the hardware resources used in this example
+* @param hdcache: DCACHE handle pointer
+* @retval None
+*/
+void HAL_DCACHE_MspInit(DCACHE_HandleTypeDef* hdcache)
+{
+  if(hdcache->Instance==DCACHE1)
+  {
+  /* USER CODE BEGIN DCACHE1_MspInit 0 */
+
+  /* USER CODE END DCACHE1_MspInit 0 */
+    /* Peripheral clock enable */
+    __HAL_RCC_DCACHE1_CLK_ENABLE();
+  /* USER CODE BEGIN DCACHE1_MspInit 1 */
+
+  /* USER CODE END DCACHE1_MspInit 1 */
+
+  }
+
+}
+
+/**
+* @brief DCACHE MSP De-Initialization
+* This function freeze the hardware resources used in this example
+* @param hdcache: DCACHE handle pointer
+* @retval None
+*/
+void HAL_DCACHE_MspDeInit(DCACHE_HandleTypeDef* hdcache)
+{
+  if(hdcache->Instance==DCACHE1)
+  {
+  /* USER CODE BEGIN DCACHE1_MspDeInit 0 */
+
+  /* USER CODE END DCACHE1_MspDeInit 0 */
+    /* Peripheral clock disable */
+    __HAL_RCC_DCACHE1_CLK_DISABLE();
+  /* USER CODE BEGIN DCACHE1_MspDeInit 1 */
+
+  /* USER CODE END DCACHE1_MspDeInit 1 */
+  }
+
+}
+
+/**
 * @brief XSPI MSP Initialization
 * This function configures the hardware resources used in this example
 * @param hxspi: XSPI handle pointer
@@ -98,12 +143,12 @@ void HAL_XSPI_MspInit(XSPI_HandleTypeDef* hxspi)
     PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_HSPI;
     PeriphClkInit.HspiClockSelection = RCC_HSPICLKSOURCE_PLL2;
     PeriphClkInit.PLL2.PLL2Source = RCC_PLLSOURCE_HSE;
-    PeriphClkInit.PLL2.PLL2M = 1;
-    PeriphClkInit.PLL2.PLL2N = 25;
+    PeriphClkInit.PLL2.PLL2M = 4;
+    PeriphClkInit.PLL2.PLL2N = 66;
     PeriphClkInit.PLL2.PLL2P = 2;
-    PeriphClkInit.PLL2.PLL2Q = 3;
+    PeriphClkInit.PLL2.PLL2Q = 2;
     PeriphClkInit.PLL2.PLL2R = 4;
-    PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_1;
+    PeriphClkInit.PLL2.PLL2RGE = RCC_PLLVCIRANGE_0;
     PeriphClkInit.PLL2.PLL2FRACN = 0;
     PeriphClkInit.PLL2.PLL2ClockOut = RCC_PLL2_DIVQ;
     if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)

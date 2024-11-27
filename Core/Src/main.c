@@ -21,7 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-
+#include <stdio.h>
+#include "mx66uw1g45g.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -41,6 +42,8 @@
 
 /* Private variables ---------------------------------------------------------*/
 
+DCACHE_HandleTypeDef hdcache1;
+
 XSPI_HandleTypeDef hxspi1;
 
 /* USER CODE BEGIN PV */
@@ -53,13 +56,27 @@ static void SystemPower_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_HSPI1_Init(void);
 static void MX_ICACHE_Init(void);
+static void MX_DCACHE1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+uint8_t DATA_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
+    0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
+};
 
+uint8_t EMPTY_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
+    0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+};
+
+static void print_buffer(uint8_t* buffer, uint32_t size) {
+  printf("buffer = [ ");
+  for (uint32_t i = 0; i < size; ++i)
+    printf("%d ", buffer[i]);
+  printf("]\n");
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,7 +113,32 @@ int main(void)
   MX_GPIO_Init();
   MX_HSPI1_Init();
   MX_ICACHE_Init();
+  MX_DCACHE1_Init();
   /* USER CODE BEGIN 2 */
+
+  print_buffer(DATA_BUFFER, sizeof(DATA_BUFFER));
+  print_buffer(EMPTY_BUFFER, sizeof(EMPTY_BUFFER));
+
+  // This causes an hard fault
+//  *EMPTY_BUFFER = 0x01;
+
+  // All of these fail because HSPI ignores direct command when in memory mapped mode, so the write has no effect
+//  uint8_t DATA_TO_WRITE[] = {0x01, 0x03, 0x05, 0x07};
+//  const uint32_t BASE_ADDRESS = (uint32_t)EMPTY_BUFFER - 0xA0000000;
+//
+//  int32_t status = MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER);
+//  if (status != MX66UW1G45G_OK)
+//      printf("MX66UW1G45G_WriteEnable failed: error %ld\n", status);
+//
+//  status = MX66UW1G45G_PageProgram(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, DATA_TO_WRITE, BASE_ADDRESS, sizeof(DATA_TO_WRITE));
+//  if (status != MX66UW1G45G_OK)
+//	  printf("MX66UW1G45G_PageProgram failed: error %ld\n", status);
+//
+//  status = MX66UW1G45G_PageProgram(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, DATA_TO_WRITE, BASE_ADDRESS + 8, sizeof(DATA_TO_WRITE));
+//  if (status != MX66UW1G45G_OK)
+//	  printf("MX66UW1G45G_PageProgram failed: error %ld\n", status);
+//
+//  print_buffer(EMPTY_BUFFER, sizeof(EMPTY_BUFFER));
 
   /* USER CODE END 2 */
 
@@ -134,12 +176,12 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
   RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSE;
   RCC_OscInitStruct.PLL.PLLMBOOST = RCC_PLLMBOOST_DIV1;
-  RCC_OscInitStruct.PLL.PLLM = 1;
-  RCC_OscInitStruct.PLL.PLLN = 10;
+  RCC_OscInitStruct.PLL.PLLM = 4;
+  RCC_OscInitStruct.PLL.PLLN = 80;
   RCC_OscInitStruct.PLL.PLLP = 8;
   RCC_OscInitStruct.PLL.PLLQ = 2;
-  RCC_OscInitStruct.PLL.PLLR = 1;
-  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_1;
+  RCC_OscInitStruct.PLL.PLLR = 2;
+  RCC_OscInitStruct.PLL.PLLRGE = RCC_PLLVCIRANGE_0;
   RCC_OscInitStruct.PLL.PLLFRACN = 0;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -182,6 +224,33 @@ static void SystemPower_Config(void)
 }
 
 /**
+  * @brief DCACHE1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_DCACHE1_Init(void)
+{
+
+  /* USER CODE BEGIN DCACHE1_Init 0 */
+
+  /* USER CODE END DCACHE1_Init 0 */
+
+  /* USER CODE BEGIN DCACHE1_Init 1 */
+
+  /* USER CODE END DCACHE1_Init 1 */
+  hdcache1.Instance = DCACHE1;
+  hdcache1.Init.ReadBurstType = DCACHE_READ_BURST_WRAP;
+  if (HAL_DCACHE_Init(&hdcache1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN DCACHE1_Init 2 */
+
+  /* USER CODE END DCACHE1_Init 2 */
+
+}
+
+/**
   * @brief HSPI1 Initialization Function
   * @param None
   * @retval None
@@ -217,6 +286,27 @@ static void MX_HSPI1_Init(void)
     Error_Handler();
   }
   /* USER CODE BEGIN HSPI1_Init 2 */
+  // Reset flash
+  MX66UW1G45G_ResetEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  MX66UW1G45G_ResetMemory(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  HAL_Delay(MX66UW1G45G_RESET_MAX_TIME);
+
+  /* Enable write operations */
+  MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+
+  /* Write Configuration register 2 (with new dummy cycles) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG3_ADDR, MX66UW1G45G_CR2_DC_6_CYCLES);
+
+  /* Enable write operations */
+  MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
+
+  /* Write Configuration register 2 (with Octal I/O SPI protocol) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
+
+  /* Wait that the configuration is effective and check that memory is ready */
+  HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+
+  MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
 
   /* USER CODE END HSPI1_Init 2 */
 
