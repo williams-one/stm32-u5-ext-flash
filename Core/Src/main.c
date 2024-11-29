@@ -21,8 +21,8 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "test_flash.h"
 #include <stdio.h>
-#include "mx66uw1g45g.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -32,7 +32,6 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -63,20 +62,14 @@ static void MX_DCACHE1_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-uint8_t DATA_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
+const uint8_t DATA_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
     0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F,
 };
 
-uint8_t EMPTY_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
+const uint8_t EMPTY_BUFFER[] __attribute__((section("ExtFlashSection"))) __attribute__((aligned(4))) = {
     0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 };
 
-static void print_buffer(uint8_t* buffer, uint32_t size) {
-  printf("buffer = [ ");
-  for (uint32_t i = 0; i < size; ++i)
-    printf("%d ", buffer[i]);
-  printf("]\n");
-}
 /* USER CODE END 0 */
 
 /**
@@ -116,29 +109,46 @@ int main(void)
   MX_DCACHE1_Init();
   /* USER CODE BEGIN 2 */
 
-  print_buffer(DATA_BUFFER, sizeof(DATA_BUFFER));
-  print_buffer(EMPTY_BUFFER, sizeof(EMPTY_BUFFER));
+#ifdef MEMORY_MAPPED_MODE
+  print_buffer("DATA_BUFFER", DATA_BUFFER, sizeof(DATA_BUFFER));
+  print_buffer("EMPTY_BUFFER", EMPTY_BUFFER, sizeof(EMPTY_BUFFER));
 
   // This causes an hard fault
-//  *EMPTY_BUFFER = 0x01;
+  // *EMPTY_BUFFER = 0x01;
+#else
+  // All of these fail in memory mapped mode because HSPI ignores direct commands, so the write has no effect
+  uint8_t buffer[256] = {};
 
-  // All of these fail because HSPI ignores direct command when in memory mapped mode, so the write has no effect
-//  uint8_t DATA_TO_WRITE[] = {0x01, 0x03, 0x05, 0x07};
-//  const uint32_t BASE_ADDRESS = (uint32_t)EMPTY_BUFFER - 0xA0000000;
-//
-//  int32_t status = MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER);
-//  if (status != MX66UW1G45G_OK)
-//      printf("MX66UW1G45G_WriteEnable failed: error %ld\n", status);
-//
-//  status = MX66UW1G45G_PageProgram(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, DATA_TO_WRITE, BASE_ADDRESS, sizeof(DATA_TO_WRITE));
-//  if (status != MX66UW1G45G_OK)
-//	  printf("MX66UW1G45G_PageProgram failed: error %ld\n", status);
-//
-//  status = MX66UW1G45G_PageProgram(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, DATA_TO_WRITE, BASE_ADDRESS + 8, sizeof(DATA_TO_WRITE));
-//  if (status != MX66UW1G45G_OK)
-//	  printf("MX66UW1G45G_PageProgram failed: error %ld\n", status);
-//
-//  print_buffer(EMPTY_BUFFER, sizeof(EMPTY_BUFFER));
+  read_from_external_flash((uint32_t)DATA_BUFFER, buffer, sizeof(DATA_BUFFER));
+  print_buffer("DATA_BUFFER", buffer, sizeof(DATA_BUFFER));
+  read_from_external_flash((uint32_t)EMPTY_BUFFER, buffer, sizeof(EMPTY_BUFFER));
+  print_buffer("EMPTY_BUFFER", buffer, sizeof(EMPTY_BUFFER));
+
+  uint32_t address = 0xA0000000 + 128 * 1024;   // 0xA0020000
+
+  read_from_external_flash(address, buffer, sizeof(buffer));
+  print_buffer("*address", buffer, sizeof(buffer));
+
+  erase_external_flash(address);
+  HAL_Delay(MX66UW1G45G_BLOCK_4K_ERASE_MAX_TIME);
+
+  uint8_t data_to_write[sizeof(buffer)] = {};
+  for (uint32_t i = 0; i < sizeof(data_to_write); ++i)
+	  data_to_write[i] = (uint8_t)(buffer[0] + i + 1);
+
+  write_to_external_flash(address, data_to_write, sizeof(data_to_write));
+  HAL_Delay(MX66UW1G45G_PAGE_PROGRAM_MAX_TIME);
+  read_from_external_flash(address, buffer, sizeof(buffer));
+  print_buffer("*address", buffer, sizeof(buffer));
+
+  write_to_external_flash(address + 256, data_to_write, 16);
+  HAL_Delay(MX66UW1G45G_PAGE_PROGRAM_MAX_TIME);
+  write_to_external_flash(address + 256 + 32, data_to_write + 32, 16);
+  HAL_Delay(MX66UW1G45G_PAGE_PROGRAM_MAX_TIME);
+
+  read_from_external_flash(address + 256, buffer, sizeof(buffer));
+  print_buffer("*address + 256", buffer, 64);
+#endif
 
   /* USER CODE END 2 */
 
@@ -300,6 +310,8 @@ static void MX_HSPI1_Init(void)
   /* Enable write operations */
   MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER);
 
+#if defined(MEMORY_MAPPED_MODE)
+  printf("Using MEMORY_MAPPED_MODE\n");
   /* Write Configuration register 2 (with Octal I/O SPI protocol) */
   MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
 
@@ -307,7 +319,20 @@ static void MX_HSPI1_Init(void)
   HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
 
   MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
+#elif defined(INDIRECT_MODE_STR)
+  printf("Using INDIRECT_MODE_STR\n");
 
+  /* Wait that the configuration is effective and check that memory is ready */
+  HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+#elif defined(INDIRECT_MODE_DTR)
+  printf("Using INDIRECT_MODE_DTR\n");
+
+  /* Write Configuration register 2 (with Octal I/O SPI protocol) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
+
+  /* Wait that the configuration is effective and check that memory is ready */
+  HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+#endif
   /* USER CODE END HSPI1_Init 2 */
 
 }

@@ -60,6 +60,7 @@ extern "C" {
 #define MX66UW1G45G_BLOCK_ERASE_MAX_TIME         1000U
 #define MX66UW1G45G_BLOCK_4K_ERASE_MAX_TIME     400U
 #define MX66UW1G45G_WRITE_REG_MAX_TIME           40U
+#define MX66UW1G45G_PAGE_PROGRAM_MAX_TIME        1U
 
 #define MX66UW1G45G_RESET_MAX_TIME               100U                 /* when SWreset during erase operation */
 
