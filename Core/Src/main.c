@@ -318,20 +318,36 @@ static void MX_HSPI1_Init(void)
   /* Wait that the configuration is effective and check that memory is ready */
   HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
 
+  read_flash_id();
+
   MX66UW1G45G_EnableDTRMemoryMappedMode(&hxspi1, MX66UW1G45G_OPI_MODE);
-#elif defined(INDIRECT_MODE_STR)
-  printf("Using INDIRECT_MODE_STR\n");
+#elif defined(INDIRECT_MODE_SPI)
+  printf("Using INDIRECT_MODE_SPI\n");
 
   /* Wait that the configuration is effective and check that memory is ready */
   HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
-#elif defined(INDIRECT_MODE_DTR)
-  printf("Using INDIRECT_MODE_DTR\n");
+
+  read_flash_id();
+#elif defined(INDIRECT_MODE_OPI_STR)
+  printf("Using INDIRECT_MODE_OPI_STR\n");
+
+  /* Write Configuration register 2 (with Octal I/O SPI protocol) */
+  MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_SOPI);
+
+  /* Wait that the configuration is effective and check that memory is ready */
+  HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+
+  read_flash_id();
+#elif defined(INDIRECT_MODE_OPI_DTR)
+  printf("Using INDIRECT_MODE_OPI_DTR\n");
 
   /* Write Configuration register 2 (with Octal I/O SPI protocol) */
   MX66UW1G45G_WriteCfg2Register(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER, MX66UW1G45G_CR2_REG1_ADDR, MX66UW1G45G_CR2_DOPI);
 
   /* Wait that the configuration is effective and check that memory is ready */
   HAL_Delay(MX66UW1G45G_WRITE_REG_MAX_TIME);
+
+  // read_flash_id();
 #endif
   /* USER CODE END HSPI1_Init 2 */
 

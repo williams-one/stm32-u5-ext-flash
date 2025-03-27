@@ -11,7 +11,27 @@ void print_buffer(char const* label, uint8_t const* buffer, uint32_t size) {
   printf("]\n");
 }
 
-#if defined(INDIRECT_MODE_STR)
+#if defined(MEMORY_MAPPED_MODE)
+
+void read_flash_id() {
+  uint8_t flash_id[3] = {};
+  int32_t status = MX66UW1G45G_ReadID(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_DTR_TRANSFER,
+                             flash_id);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_ReadID failed: error %ld\n", status);
+  print_buffer("FLASHID", flash_id, sizeof(flash_id));
+}
+
+#elif defined(INDIRECT_MODE_SPI)
+
+void read_flash_id() {
+  uint8_t flash_id[3] = {};
+  int32_t status = MX66UW1G45G_ReadID(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER,
+                             flash_id);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_ReadID failed: error %ld\n", status);
+  print_buffer("FLASHID", flash_id, sizeof(flash_id));
+}
 
 void read_from_external_flash(uint32_t address, uint8_t* data, uint32_t size) {
   uint32_t offset = (uint32_t)address - 0xA0000000;
@@ -47,7 +67,61 @@ void write_to_external_flash(uint32_t address, uint8_t* data, uint32_t size) {
     printf("MX66UW1G45G_PageProgramSTR failed: error %ld\n", status);
 }
 
-#elif defined(INDIRECT_MODE_DTR)
+#elif defined(INDIRECT_MODE_OPI_STR)
+
+void read_flash_id() {
+  uint8_t flash_id[3] = {};
+  int32_t status = MX66UW1G45G_ReadID(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER,
+                             flash_id);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_ReadID failed: error %ld\n", status);
+  print_buffer("FLASHID", flash_id, sizeof(flash_id));
+}
+
+void read_from_external_flash(uint32_t address, uint8_t* data, uint32_t size) {
+  uint32_t offset = (uint32_t)address - 0xA0000000;
+
+  int32_t status = MX66UW1G45G_ReadSTR(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, data, offset, size);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_ReadSTR failed: error %ld\n", status);
+}
+
+void erase_external_flash(uint32_t address) {
+  uint32_t offset = (uint32_t)address - 0xA0000000;
+
+  int32_t status = MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_WriteEnable failed: error %ld\n", status);
+
+
+  status = MX66UW1G45G_BlockErase(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER,
+                                  MX66UW1G45G_4BYTES_SIZE, offset, MX66UW1G45G_ERASE_4K);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_BlockErase failed: error %ld\n", status);
+}
+
+void write_to_external_flash(uint32_t address, uint8_t* data, uint32_t size) {
+  uint32_t offset = (uint32_t)address - 0xA0000000;
+
+  int32_t status = MX66UW1G45G_WriteEnable(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_STR_TRANSFER);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_WriteEnable failed: error %ld\n", status);
+
+  status = MX66UW1G45G_PageProgram(&hxspi1, MX66UW1G45G_OPI_MODE, MX66UW1G45G_4BYTES_SIZE, data, offset, size);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_PageProgram failed: error %ld\n", status);
+}
+
+#elif defined(INDIRECT_MODE_OPI_DTR)
+
+void read_flash_id() {
+  uint8_t flash_id[3] = {};
+  int32_t status = MX66UW1G45G_ReadID(&hxspi1, MX66UW1G45G_SPI_MODE, MX66UW1G45G_STR_TRANSFER,
+                             flash_id);
+  if (status != MX66UW1G45G_OK)
+    printf("MX66UW1G45G_ReadID failed: error %ld\n", status);
+  print_buffer("FLASHID", flash_id, sizeof(flash_id));
+}
 
 void read_from_external_flash(uint32_t address, uint8_t* data, uint32_t size) {
   uint32_t offset = (uint32_t)address - 0xA0000000;
